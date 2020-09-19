@@ -1,7 +1,6 @@
 const BigNumber = require("bignumber.js");
 const QuillToken = artifacts.require("QuillToken");
 const QuillTokenCrowdsale = artifacts.require('QuillTokenCrowdsale');
-const QuillLending = artifacts.require('QuillLending');
 
 module.exports = async function(deployer,network,accounts) {
 	const _name = "Quill Token";
@@ -13,6 +12,4 @@ module.exports = async function(deployer,network,accounts) {
  	await deployer.deploy(QuillToken,_name,_symbol,_decimals,_totalSupply)
  	const token = await QuillToken.deployed()
  	await deployer.deploy(QuillTokenCrowdsale,_rate,accounts[0],token.address)
- 	await deployer.deploy(QuillLending,token.address);
-
 };

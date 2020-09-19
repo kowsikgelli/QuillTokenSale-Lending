@@ -61,8 +61,8 @@ contract ERC1132Modified {
      * 
      * @param _time The timestamp to query the lock tokens for
      */
-    function tokensLockedAtTime(address _of, uint256 _time)
-        public view returns (uint256 amount);
+    // function tokensLockedAtTime(address _of, uint256 _time)
+    //     public view returns (uint256 amount);
     
     /**
      * @dev Returns total tokens held by an address (locked + transferable)
