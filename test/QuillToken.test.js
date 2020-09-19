@@ -19,25 +19,25 @@ contract("QuillToken",([owner,account1]) => {
 	let lockTimestamp;
 
 	const increaseTime = function(duration) {
-    web3.currentProvider.sendAsync(
-      {
-        jsonrpc: '2.0',
-        method: 'evm_increaseTime',
-        params: [duration],
-        id: lockTimestamp
-      },
-      (err, resp) => {
-        if (!err) {
-          web3.currentProvider.send({
-            jsonrpc: '2.0',
-            method: 'evm_mine',
-            params: [],
-            id: lockTimestamp + 1
-          });
-        }
-      }
-    );
-  };
+//     web3.currentProvider.sendAsync(
+//       {
+//         jsonrpc: '2.0',
+//         method: 'evm_increaseTime',
+//         params: [duration],
+//         id: lockTimestamp
+//       },
+//       (err, resp) => {
+//         if (!err) {
+//           web3.currentProvider.send({
+//             jsonrpc: '2.0',
+//             method: 'evm_mine',
+//             params: [],
+//             id: lockTimestamp + 1
+//           });
+//         }
+//       }
+//     );
+//   };
 	const nullAddress = '0x0000000000000000000000000000000000000000';
 	before(async()=>{
 		instance = await QuillToken.deployed();
