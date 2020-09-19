@@ -83,12 +83,14 @@ contract QuillToken is ERC20, ERC20Detailed,ERC1132Modified{
     }
 
     function tokensUnlockable(address _of)
-    public view returns (uint256 amount)
+    public view returns (uint256)
     {
+    	uint amount;
     	if(locked[_of].validity <= now && !locked[_of].claimed)
     	{
     		amount = locked[_of].amount;
     	}
+    	return amount;
     }
 
     function unlock(address _of)

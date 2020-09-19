@@ -13,6 +13,14 @@ contract('QuillTokenCrowdsale',([wallet])=>{
 	const _symbol = "QUILL"
 	const _decimals = 18
 
+	/****
+		Asuming 1 ETH = 400$
+		10 ^ 18 wei = 400$
+		0.0001 usd = (10 ^ 18 * 0.001)/400 = 25 * 10^11 wei
+		therefore if user sends 25 * 10^11 wei to smart contract we should give 10 ^ 18 uints of our token (1 QUILL)
+		but in crowd sale rate is ho many tokens the user gets for 1 wei 
+		there fore for 1 wei user gets (10^18/25 * 10^11) = 4 * 10^5 uints of quillq token.
+	****/
 	const _rate = 400000;
 
 	describe('Crowdsale',()=>{

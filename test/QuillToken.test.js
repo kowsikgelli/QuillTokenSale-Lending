@@ -18,26 +18,6 @@ contract("QuillToken",([owner,account1]) => {
 	let blockNumber;
 	let lockTimestamp;
 
-	const increaseTime = function(duration) {
-    web3.currentProvider.sendAsync(
-      {
-        jsonrpc: '2.0',
-        method: 'evm_increaseTime',
-        params: [duration],
-        id: lockTimestamp
-      },
-      (err, resp) => {
-        if (!err) {
-          web3.currentProvider.send({
-            jsonrpc: '2.0',
-            method: 'evm_mine',
-            params: [],
-            id: lockTimestamp + 1
-          });
-        }
-      }
-    );
-  };
 	const nullAddress = '0x0000000000000000000000000000000000000000';
 	before(async()=>{
 		instance = await QuillToken.deployed();
@@ -157,23 +137,29 @@ contract("QuillToken",([owner,account1]) => {
       		);
     	});
 
-    		})
+    	it('should not allow 0 lock amount',async()=>{
+    		await assertRevert(instance.lock(0, lockPeriod));
+    	})
+
+    })
 
 	describe('tokens unlocking',()=>{
-		// this unlocking test is still in progress
 
 		it('can unlock tokens ',async()=>{
-    		// const originalBalance = await instance.balanceOf(owner);
-    		instance = await QuillToken.new(_name,_symbol,_decimals,_tokens.toString(10));
-			lockPeriod = 1
+			instance = await QuillToken.new(_name,_symbol,_decimals,_tokens.toString(10));
+			const originalBalance = await instance.balanceOf(owner);
+			// setting lockperiod for 5 seconds
+			lockPeriod = 5
 			await instance.lock(lockedAmount,lockPeriod);
-			
-			
 			const balance = await instance.balanceOf(owner);
+			const totalBalance = await instance.totalBalanceOf(owner);
+			console.log('balanceAFterLocking',balance.toString())
+			assert.equal(balance,originalBalance - lockedAmount);
+			assert.equal(totalBalance.toString(),originalBalance.toString());
 
-			const tokensLocked = await instance.tokensLocked(owner);
-
-			console.log('tokensLocked', tokensLocked.toString());
+			let actualLockedAmount = await instance.tokensLocked(owner);
+			assert.equal(actualLockedAmount.toString(),lockedAmount.toString());
+			// waiting for 10 seconds to complete the locking period
 			function sleep(milliseconds) {
   				const date = Date.now();
   				let currentDate = null;
@@ -181,9 +167,13 @@ contract("QuillToken",([owner,account1]) => {
     				currentDate = Date.now();
   					} while (currentDate - date < milliseconds);
 				}
-			sleep(5000);
-			const unlockableTokens = await instance.tokensUnlockable(owner);
-			console.log('getUnlockableTokens',unlockableTokens.toString())
+			sleep(10000);
+			
+			await instance.unlock(owner);
+
+			const balanceAfterUnlocking = await instance.balanceOf(owner);
+			console.log('balanceAfterUnlocking ',balanceAfterUnlocking.toString())
+			assert.equal(balanceAfterUnlocking.toString(),originalBalance.toString());
 			
     	})
 
