@@ -5,7 +5,8 @@ import  "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./ERC1132Modified.sol";
 
-contract QuillToken is ERC20, ERC20Detailed,ERC1132Modified{
+contract QuillToken is ERC20, ERC20Detailed,ERC1132Modified
+{
 
 	using SafeMath for uint256;
 
@@ -97,18 +98,19 @@ contract QuillToken is ERC20, ERC20Detailed,ERC1132Modified{
     public returns (uint256 unlockableTokens)
     {
     	uint lockedTokens;
-
+    	uint rewardTokens;
     	//Here we calculate the reward that the user gets by locking these tokens and adds it to 
     	// unlockable tokens and new tokens minted for this address will be unlockableTokens + reward
 
     	for(uint i=0;i<lockedIndex;i+=1)
     	{
     		lockedTokens = tokensUnlockable(_of);
+    		rewardTokens = calculateReward(_of);
     		if(lockedTokens > 0)
     		{
-    			unlockableTokens = unlockableTokens.add(lockedTokens);
+    			unlockableTokens = unlockableTokens.add(lockedTokens.add(rewardTokens));
     			locked[_of].claimed = true;
-    			emit Unlocked(_of,lockedTokens);
+    			emit Unlocked(_of,unlockableTokens);
     		}
     	}
 
@@ -126,5 +128,112 @@ contract QuillToken is ERC20, ERC20Detailed,ERC1132Modified{
     		unlockableTokens = unlockableTokens.add(tokensUnlockable(_of));
     	}
     }
+
+    function calculateReward(address _user)public view returns(uint)
+    {
+    	require(!locked[_user].claimed,'IT is already claimed');
+    	uint time = locked[_user].validity;
+    	uint amount = locked[_user].amount;
+    	// One month in seconds = 2629746 approx (30.5 days)
+    	if(amount >= 2000000 * 10 ** 18)
+    	{
+    		if(time == 2629746)
+    		{
+    			uint yearReward = mulDiv(amount,16,100);
+    			uint monthReward = yearReward.div(12);
+
+    			return monthReward;
+    		}
+    		if(time == 2629746 * 3)
+    		{
+    			uint yearReward = mulDiv(amount,20,100);
+    			uint monthReward = yearReward.div(12);
+
+    			return monthReward * 3;	
+    		}
+    	}else
+    	{
+    		if(time == 2629746)
+    		{
+    			uint yearReward = mulDiv(amount,12,100);
+    			uint monthReward = yearReward.div(12);
+
+    			return monthReward;
+    		}
+    		if(time == 2629746 * 3)
+    		{
+    			uint yearReward = mulDiv(amount,20,100);
+    			uint monthReward = yearReward.div(12);
+
+    			return monthReward * 3;	
+    		}
+    	}
+    }
+
+
+    //@ dev calculates x * y/z  say (y % of x) where y = percentage x = amount z = 100
+
+    function mulDiv (uint x, uint y, uint z)
+    public pure returns (uint)
+    {
+        (uint l, uint h) = fullMul (x, y);
+        return fullDiv (l, h, z);
+    }
+    // @ dev helper function for mulDiv
+    function fullMul (uint x, uint y)
+    public pure returns (uint l, uint h)
+    {
+        uint xl = uint128 (x); uint xh = x >> 128;
+        uint yl = uint128 (y); uint yh = y >> 128;
+        uint xlyl = xl * yl; uint xlyh = xl * yh;
+        uint xhyl = xh * yl; uint xhyh = xh * yh;
+
+        uint ll = uint128 (xlyl);
+        uint lh = (xlyl >> 128) + uint128 (xlyh) + uint128 (xhyl);
+        uint hl = uint128 (xhyh) + (xlyh >> 128) + (xhyl >> 128);
+        uint hh = (xhyh >> 128);
+        l = ll + (lh << 128);
+        h = (lh >> 128) + hl + (hh << 128);
+    }
+    // @ dev helper function for mulDiv
+    function fullDiv (uint l, uint h, uint z)
+    public pure returns (uint r) {
+        require (h < z);
+        uint zShift = mostSignificantBit (z);
+        uint shiftedZ = z;
+        if (zShift <= 127) zShift = 0;
+        else
+        {
+            zShift -= 127;
+            shiftedZ = (shiftedZ - 1 >> zShift) + 1;
+        }
+        while (h > 0)
+        {
+            uint lShift = mostSignificantBit (h) + 1;
+            uint hShift = 256 - lShift;
+            uint e = ((h << hShift) + (l >> lShift)) / shiftedZ;
+            if (lShift > zShift) e <<= (lShift - zShift);
+            else e >>= (zShift - lShift);
+            r += e;
+            (uint tl, uint th) = fullMul (e, z);
+            h -= th;
+            if (tl > l) h -= 1;
+            l -= tl;
+        }
+        r += l / z;
+    }
+    // @dev helper function for fullDiv 
+    function mostSignificantBit (uint x) public pure returns (uint r) {
+        require (x > 0);
+        if (x >= 2**128) { x >>= 128; r += 128; }
+        if (x >= 2**64) { x >>= 64; r += 64; }
+        if (x >= 2**32) { x >>= 32; r += 32; }
+        if (x >= 2**16) { x >>= 16; r += 16; }
+        if (x >= 2**8) { x >>= 8; r += 8; }
+        if (x >= 2**4) { x >>= 4; r += 4; }
+        if (x >= 2**2) { x >>= 2; r += 2; }
+        if (x >= 2**1) { x >>= 1; r += 1; }
+    }
+
 	
 }
