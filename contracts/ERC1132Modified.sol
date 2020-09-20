@@ -8,6 +8,7 @@ contract ERC1132Modified {
         uint256 amount;
         uint256 validity;
         bool claimed;
+        uint months;
     }
 
     /**
@@ -22,7 +23,8 @@ contract ERC1132Modified {
     event Locked(
         address indexed _of,
         uint256 _amount,
-        uint256 _validity
+        uint256 _validity,
+        uint256 _months
     );
 
     /**

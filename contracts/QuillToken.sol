@@ -19,20 +19,28 @@ contract QuillToken is ERC20, ERC20Detailed,ERC1132Modified
 		_mint(msg.sender,_totalSupply);
 	}
 
-	function lock(uint256 _amount,uint256 _time)
+	function lock(uint256 _amount,uint256 _months)
 	public returns(bool)
 	{
-		uint256 validUntil = now.add(_time);
+		require(_months == 1 || _months == 3,'Lock perios should be either 1 month or 3 months');
+		uint validUntil;
+		uint  monthInSeconds = 2629746;
+		if(_months == 1){
+			validUntil = now.add(monthInSeconds);
+		}
+		if(_months == 3){
+			validUntil = now.add(monthInSeconds.mul(3));
+		}
 
 		require(tokensLocked(msg.sender)==0,'ALREADY_LOCKED');
 		require(_amount !=0 ,'AMOUNT_ZERO');
 
 		_burn(msg.sender,_amount);
 
-		locked[msg.sender] = lockToken(_amount,validUntil,false);
+		locked[msg.sender] = lockToken(_amount,validUntil,false,_months);
 		lockedIndex = lockedIndex.add(1);
 
-		emit Locked(msg.sender,_amount,validUntil);
+		emit Locked(msg.sender,_amount,validUntil,_months);
 
 		return true;
 	}
@@ -58,13 +66,19 @@ contract QuillToken is ERC20, ERC20Detailed,ERC1132Modified
     	}
     }
 
-    function extendLock(uint256 _time)
+    function extendLock(uint256 _months)
     public returns (bool)
     {
+    	require(_months == 1 || _months == 3,'The extended Period should be 1 or 3 months');
     	require(tokensLocked(msg.sender) > 0,'Not Locked');
-    	locked[msg.sender].validity = locked[msg.sender].validity.add(_time);
-
-    	emit Locked(msg.sender,locked[msg.sender].amount,locked[msg.sender].validity);
+    	uint  monthInSeconds = 2629746;
+    	if(_months == 1){
+    		locked[msg.sender].validity = locked[msg.sender].validity.add(monthInSeconds);
+    	}
+    	if(_months == 3){
+    		locked[msg.sender].validity = locked[msg.sender].validity.add(monthInSeconds.mul(3));
+    	}
+    	emit Locked(msg.sender,locked[msg.sender].amount,locked[msg.sender].validity,locked[msg.sender].months+_months);
 
     	return true;
     }
@@ -78,7 +92,7 @@ contract QuillToken is ERC20, ERC20Detailed,ERC1132Modified
 
     	locked[msg.sender].amount = locked[msg.sender].amount.add(_amount);
 
-    	emit Locked(msg.sender,locked[msg.sender].amount,locked[msg.sender].validity);
+    	emit Locked(msg.sender,locked[msg.sender].amount,locked[msg.sender].validity,locked[msg.sender].months);
 
     	return true;
     }
@@ -129,22 +143,26 @@ contract QuillToken is ERC20, ERC20Detailed,ERC1132Modified
     	}
     }
 
+    function getStakerReward(address _user)public view returns(uint)
+    {
+    	return calculateReward(_user);
+    }
+
     function calculateReward(address _user)public view returns(uint)
     {
-    	require(!locked[_user].claimed,'IT is already claimed');
-    	uint time = locked[_user].validity;
+    	uint months = locked[_user].months;
     	uint amount = locked[_user].amount;
     	// One month in seconds = 2629746 approx (30.5 days)
     	if(amount >= 2000000 * 10 ** 18)
     	{
-    		if(time == 2629746)
+    		if(months == 1)
     		{
     			uint yearReward = mulDiv(amount,16,100);
     			uint monthReward = yearReward.div(12);
 
     			return monthReward;
     		}
-    		if(time == 2629746 * 3)
+    		if(months == 3)
     		{
     			uint yearReward = mulDiv(amount,20,100);
     			uint monthReward = yearReward.div(12);
@@ -153,14 +171,14 @@ contract QuillToken is ERC20, ERC20Detailed,ERC1132Modified
     		}
     	}else
     	{
-    		if(time == 2629746)
+    		if(months == 1)
     		{
     			uint yearReward = mulDiv(amount,12,100);
     			uint monthReward = yearReward.div(12);
 
     			return monthReward;
     		}
-    		if(time == 2629746 * 3)
+    		if(months == 3)
     		{
     			uint yearReward = mulDiv(amount,20,100);
     			uint monthReward = yearReward.div(12);

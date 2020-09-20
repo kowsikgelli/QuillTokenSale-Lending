@@ -1,6 +1,20 @@
 const QuillToken = artifacts.require("./QuillToken.sol");
 const BigNumber = require('bignumber.js');
 
+require('@openzeppelin/test-helpers/configure')({
+  provider: 'http://localhost:7545',
+});
+
+require('@openzeppelin/test-helpers/configure')({
+  provider: web3.currentProvider,
+  singletons: {
+    abstraction: 'truffle',
+  },
+});
+
+const time = require('@openzeppelin/test-helpers/src/time.js')
+
+
 const { assertRevert } = require('./utils/assertRevert');
 
 require('chai')
@@ -13,34 +27,9 @@ contract("QuillToken",([owner,account1]) => {
 	const _symbol = "QUILL"
 	const _decimals = 18
 
-	let lockPeriod = 1000
-	const lockedAmount = BigNumber(10).pow(18).multipliedBy(100);
-	let blockNumber;
-	let lockTimestamp;
+	// let lockPeriod = 1000
+	let lockedAmount = BigNumber(10).pow(18).multipliedBy(100);	
 
-<<<<<<< HEAD
-=======
-	const increaseTime = function(duration) {
-//     web3.currentProvider.sendAsync(
-//       {
-//         jsonrpc: '2.0',
-//         method: 'evm_increaseTime',
-//         params: [duration],
-//         id: lockTimestamp
-//       },
-//       (err, resp) => {
-//         if (!err) {
-//           web3.currentProvider.send({
-//             jsonrpc: '2.0',
-//             method: 'evm_mine',
-//             params: [],
-//             id: lockTimestamp + 1
-//           });
-//         }
-//       }
-//     );
-//   };
->>>>>>> f736b1e8ffb44b08eb12b8296c4a080b90ab320b
 	const nullAddress = '0x0000000000000000000000000000000000000000';
 	before(async()=>{
 		instance = await QuillToken.deployed();
@@ -100,7 +89,7 @@ contract("QuillToken",([owner,account1]) => {
 
 		it('reduces locked tokens from transferable balance', async()=>{
 			const originalBalance = await instance.balanceOf(owner);
-
+			let lockPeriod = 1
 			await instance.lock(lockedAmount,lockPeriod);
 			const balance = await instance.balanceOf(owner);
 			const totalBalance = await instance.totalBalanceOf(owner);
@@ -129,7 +118,7 @@ contract("QuillToken",([owner,account1]) => {
 
 		it('reverts locing more tokens via lock function',async()=>{
 			const originalBalance = await instance.balanceOf(owner);
-
+			let lockPeriod = 3;
 			await instance.lock(lockedAmount,lockPeriod);
 			let balance = await instance.balanceOf(owner);
 			const totalBalance = await instance.totalBalanceOf(owner);
@@ -161,6 +150,7 @@ contract("QuillToken",([owner,account1]) => {
     	});
 
     	it('should not allow 0 lock amount',async()=>{
+    		lockPeriod = 1
     		await assertRevert(instance.lock(0, lockPeriod));
     	})
 
@@ -171,35 +161,172 @@ contract("QuillToken",([owner,account1]) => {
 		it('can unlock tokens ',async()=>{
 			instance = await QuillToken.new(_name,_symbol,_decimals,_tokens.toString(10));
 			const originalBalance = await instance.balanceOf(owner);
-			// setting lockperiod for 5 seconds
-			lockPeriod = 5
+			// setting lockperiod for 1 month
+			lockPeriod = 1
+			lockedAmount = BigNumber(10).pow(18).multipliedBy(2000000);
 			await instance.lock(lockedAmount,lockPeriod);
 			const balance = await instance.balanceOf(owner);
 			const totalBalance = await instance.totalBalanceOf(owner);
 			console.log('balanceAFterLocking',balance.toString())
-			assert.equal(balance,originalBalance - lockedAmount);
+
 			assert.equal(totalBalance.toString(),originalBalance.toString());
 
-			let actualLockedAmount = await instance.tokensLocked(owner);
-			assert.equal(actualLockedAmount.toString(),lockedAmount.toString());
-			// waiting for 10 seconds to complete the locking period
-			function sleep(milliseconds) {
-  				const date = Date.now();
-  				let currentDate = null;
-  				do {
-    				currentDate = Date.now();
-  					} while (currentDate - date < milliseconds);
-				}
-			sleep(10000);
+			// this line increases the time in ganache by one month so we can unlock the tokens
+			await time.increase(2700000);
 			
 			await instance.unlock(owner);
 
 			const balanceAfterUnlocking = await instance.balanceOf(owner);
 			console.log('balanceAfterUnlocking ',balanceAfterUnlocking.toString())
-			assert.equal(balanceAfterUnlocking.toString(),originalBalance.toString());
+
+			const reward = await instance.getStakerReward(owner);
+
+			assert.equal(balanceAfterUnlocking.toString(),BigNumber(originalBalance).plus(reward).toString(10))
+			
+    	})
+    	it('can unlock tokens ',async()=>{
+			instance = await QuillToken.new(_name,_symbol,_decimals,_tokens.toString(10));
+			const originalBalance = await instance.balanceOf(owner);
+			// setting lockperiod for 1 month
+			lockPeriod = 3
+			lockedAmount = BigNumber(10).pow(18).multipliedBy(2750000);
+			await instance.lock(lockedAmount,lockPeriod);
+			const balance = await instance.balanceOf(owner);
+			const totalBalance = await instance.totalBalanceOf(owner);
+			console.log('balanceAFterLocking',balance.toString())
+
+			assert.equal(totalBalance.toString(),originalBalance.toString());
+
+			await time.increase(2700000*3);
+			
+			await instance.unlock(owner);
+
+			const balanceAfterUnlocking = await instance.balanceOf(owner);
+			console.log('balanceAfterUnlocking ',balanceAfterUnlocking.toString())
+
+			const reward = await instance.getStakerReward(owner);
+
+			assert.equal(balanceAfterUnlocking.toString(),BigNumber(originalBalance).plus(reward).toString(10))
+			
+    	})
+    	it('can unlock tokens ',async()=>{
+			instance = await QuillToken.new(_name,_symbol,_decimals,_tokens.toString(10));
+			const originalBalance = await instance.balanceOf(owner);
+			// setting lockperiod for 1 month
+			lockPeriod = 1
+			lockedAmount = BigNumber(10).pow(18).multipliedBy(1000000);
+			await instance.lock(lockedAmount,lockPeriod);
+			const balance = await instance.balanceOf(owner);
+			const totalBalance = await instance.totalBalanceOf(owner);
+			console.log('balanceAFterLocking',balance.toString())
+
+			assert.equal(totalBalance.toString(),originalBalance.toString());
+
+			await time.increase(2700000);
+			
+			await instance.unlock(owner);
+
+			const balanceAfterUnlocking = await instance.balanceOf(owner);
+			console.log('balanceAfterUnlocking ',balanceAfterUnlocking.toString())
+
+			const reward = await instance.getStakerReward(owner);
+
+			assert.equal(balanceAfterUnlocking.toString(),BigNumber(originalBalance).plus(reward).toString(10))
+			
+    	})
+    	it('can unlock tokens ',async()=>{
+			instance = await QuillToken.new(_name,_symbol,_decimals,_tokens.toString(10));
+			const originalBalance = await instance.balanceOf(owner);
+			// setting lockperiod for 1 month
+			lockPeriod = 3
+			lockedAmount = BigNumber(10).pow(18).multipliedBy(1000000);
+			await instance.lock(lockedAmount,lockPeriod);
+			const balance = await instance.balanceOf(owner);
+			const totalBalance = await instance.totalBalanceOf(owner);
+			console.log('balanceAFterLocking',balance.toString())
+
+			assert.equal(totalBalance.toString(),originalBalance.toString());
+
+			await time.increase(2700000 * 3);
+			
+			await instance.unlock(owner);
+
+			const balanceAfterUnlocking = await instance.balanceOf(owner);
+			console.log('balanceAfterUnlocking ',balanceAfterUnlocking.toString())
+
+			const reward = await instance.getStakerReward(owner);
+
+			assert.equal(balanceAfterUnlocking.toString(),BigNumber(originalBalance).plus(reward).toString(10))
 			
     	})
 
+		it('Querying user stake rewards for 1 month >= $2000 to display',async()=>{
+			instance = await QuillToken.new(_name,_symbol,_decimals,_tokens.toString(10));
+			const originalBalance = await instance.balanceOf(owner);
+			lockPeriod = 1
+			lockedAmount = BigNumber(10).pow(18).multipliedBy(2000000)
+			await instance.lock(lockedAmount,lockPeriod);
+			const balance = await instance.balanceOf(owner);
+			const totalBalance = await instance.totalBalanceOf(owner);
+			console.log('balanceAFterLocking',balance.toString())
+			assert.equal(totalBalance.toString(),originalBalance.toString());
+
+			//one month 2000$ staked so 16% apy for year 320000 for one month  26666 tokens
+
+			const reward = await instance.getStakerReward(owner);
+			console.log('Staker reward',reward.toString());
+		})
+
+		it('Querying user stake rewards for 3 month >= $2000 to display',async()=>{
+			instance = await QuillToken.new(_name,_symbol,_decimals,_tokens.toString(10));
+			const originalBalance = await instance.balanceOf(owner);
+			lockPeriod = 3
+			lockedAmount = BigNumber(10).pow(18).multipliedBy(2000000)
+			await instance.lock(lockedAmount,lockPeriod);
+			const balance = await instance.balanceOf(owner);
+			const totalBalance = await instance.totalBalanceOf(owner);
+			console.log('balanceAFterLocking',balance.toString())
+			assert.equal(totalBalance.toString(),originalBalance.toString());
+
+			//one month 2000$ staked so 16% apy for year 320000 for one month  26666 tokens
+
+			const reward = await instance.getStakerReward(owner);
+			console.log('Staker reward',reward.toString());
+		})
+
+		it('Querying user stake rewards for 1 month < $2000 to display',async()=>{
+			instance = await QuillToken.new(_name,_symbol,_decimals,_tokens.toString(10));
+			const originalBalance = await instance.balanceOf(owner);
+			lockPeriod = 1
+			lockedAmount = BigNumber(10).pow(18).multipliedBy(1000000)
+			await instance.lock(lockedAmount,lockPeriod);
+			const balance = await instance.balanceOf(owner);
+			const totalBalance = await instance.totalBalanceOf(owner);
+			console.log('balanceAFterLocking',balance.toString())
+			assert.equal(totalBalance.toString(),originalBalance.toString());
+
+			//one month 2000$ staked so 16% apy for year 320000 for one month  26666 tokens
+
+			const reward = await instance.getStakerReward(owner);
+			console.log('Staker reward',reward.toString());
+		})
+
+		it('Querying user stake rewards for 3 month < $2000 to display',async()=>{
+			instance = await QuillToken.new(_name,_symbol,_decimals,_tokens.toString(10));
+			const originalBalance = await instance.balanceOf(owner);
+			lockPeriod = 3
+			lockedAmount = BigNumber(10).pow(18).multipliedBy(1000000)
+			await instance.lock(lockedAmount,lockPeriod);
+			const balance = await instance.balanceOf(owner);
+			const totalBalance = await instance.totalBalanceOf(owner);
+			console.log('balanceAFterLocking',balance.toString())
+			assert.equal(totalBalance.toString(),originalBalance.toString());
+
+			//one month 2000$ staked so 16% apy for year 320000 for one month  26666 tokens
+
+			const reward = await instance.getStakerReward(owner);
+			console.log('Staker reward',reward.toString());
+		})
 
 	})
 })
